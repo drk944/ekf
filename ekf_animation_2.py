@@ -4,11 +4,11 @@ import math
 from matplotlib.patches import Ellipse
 import matplotlib.lines as mlines
 from tqdm import tqdm
-import jax
-import jax.numpy as jnp
-from jax import jit, vmap
+# import jax
+# import jax.numpy as jnp
+# from jax import jit, vmap
 import time
-jax.config.update('jax_platform_name', 'cpu')
+# jax.config.update('jax_platform_name', 'cpu')
 
 # robot association is an array where each row corresponds a bar code value to a landmark
 robot_association = np.loadtxt('datasets/MRCLAM_Dataset1/Barcodes.dat', skiprows=4, dtype='int')
@@ -135,33 +135,33 @@ def sensor_reading(mu_bar, sigma_bar, z, landmarks):
 
     return mu_bar.reshape(3), sigma_bar  
 
-@jit
-def sensor_reading_fast(mu_bar, sigma_bar, z, landmark):
+# @jit
+# def sensor_reading_fast(mu_bar, sigma_bar, z, landmark):
     
-    q = (landmark[0] - mu_bar[0])**2 + (landmark[1] - mu_bar[1])**2
-    z_hat = jnp.array([jnp.sqrt(q), jnp.arctan2(landmark[1] - mu_bar[1], landmark[0] - mu_bar[0]) - mu_bar[2]-jnp.pi/2])
+#     q = (landmark[0] - mu_bar[0])**2 + (landmark[1] - mu_bar[1])**2
+#     z_hat = jnp.array([jnp.sqrt(q), jnp.arctan2(landmark[1] - mu_bar[1], landmark[0] - mu_bar[0]) - mu_bar[2]-jnp.pi/2])
     
-    h_t = jnp.array([[-(landmark[0] - mu_bar[0])/jnp.sqrt(q), -(landmark[1] - mu_bar[1])/jnp.sqrt(q), 0],
-                    [(landmark[1] - mu_bar[1])/q, - (landmark[0] - mu_bar[0])/q, -1],
-                    [0, 0, 0]])
+#     h_t = jnp.array([[-(landmark[0] - mu_bar[0])/jnp.sqrt(q), -(landmark[1] - mu_bar[1])/jnp.sqrt(q), 0],
+#                     [(landmark[1] - mu_bar[1])/q, - (landmark[0] - mu_bar[0])/q, -1],
+#                     [0, 0, 0]])
     
-    S_t = h_t @ sigma_bar @ h_t.T + jnp.array(Q_t)
+#     S_t = h_t @ sigma_bar @ h_t.T + jnp.array(Q_t)
 
-    K_t = jnp.array(sigma_bar @ h_t.T @ jnp.linalg.inv(S_t))  # Kalman Gain, inverting a matrix, will look to optimize this later
+#     K_t = jnp.array(sigma_bar @ h_t.T @ jnp.linalg.inv(S_t))  # Kalman Gain, inverting a matrix, will look to optimize this later
     
-    # z_hat[-1] -= math.pi/2
-    # z_hat = jax.ops.index_update(z_hat, -1, z_hat[-1] - jnp.pi/2)
-    z_diff = z[1:] - z_hat
-    # add a 0 to the end of the z_diff to account for the id
-    z_diff = jnp.append(z_diff, 0)
-    # normalize the angle
-    z_diff = z_diff.at[1].set((z_diff[1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
+#     # z_hat[-1] -= math.pi/2
+#     # z_hat = jax.ops.index_update(z_hat, -1, z_hat[-1] - jnp.pi/2)
+#     z_diff = z[1:] - z_hat
+#     # add a 0 to the end of the z_diff to account for the id
+#     z_diff = jnp.append(z_diff, 0)
+#     # normalize the angle
+#     z_diff = z_diff.at[1].set((z_diff[1] + jnp.pi) % (2 * jnp.pi) - jnp.pi)
 
-    mu_bar = mu_bar.reshape(3,1) + K_t @ z_diff.reshape(3,1)
+#     mu_bar = mu_bar.reshape(3,1) + K_t @ z_diff.reshape(3,1)
 
-    sigma_bar = (jnp.eye(3) - (K_t @ h_t)) @ sigma_bar
+#     sigma_bar = (jnp.eye(3) - (K_t @ h_t)) @ sigma_bar
 
-    return mu_bar.reshape(3), sigma_bar 
+#     return mu_bar.reshape(3), sigma_bar 
 
 def EKF(robot_odometry, initial_x, initial_y, initial_theta, robot_measurements, use_jit=False):    
     # We need to find when the robot measurements and odometry line up
@@ -203,14 +203,15 @@ def EKF(robot_odometry, initial_x, initial_y, initial_theta, robot_measurements,
         reading = None
         while(robot_odometry[i][0] >= robot_measurements[measurement_idx][0]):
             # Correction Step
-            if use_jit:
-                z = robot_measurements[measurement_idx][1:]
-                landmark_id = robot_association_dict[(z[0]).astype(int)]
-                landmark = landmark_dict[landmark_id]
-                mu_bar, sigma_bar = sensor_reading_fast(jnp.array(mu_bar), jnp.array(sigma_bar), robot_measurements[measurement_idx][1:], landmark)
-                # convert back to numpy
-                mu_bar = np.array(mu_bar)
-                sigma_bar = np.array(sigma_bar)
+            if False:# use_jit:
+                pass
+                # z = robot_measurements[measurement_idx][1:]
+                # landmark_id = robot_association_dict[(z[0]).astype(int)]
+                # landmark = landmark_dict[landmark_id]
+                # mu_bar, sigma_bar = sensor_reading_fast(jnp.array(mu_bar), jnp.array(sigma_bar), robot_measurements[measurement_idx][1:], landmark)
+                # # convert back to numpy
+                # mu_bar = np.array(mu_bar)
+                # sigma_bar = np.array(sigma_bar)
             else:
                 mu_bar, sigma_bar = sensor_reading(mu_bar, sigma_bar, robot_measurements[measurement_idx][1:], landmark_dict)
             measurement_idx += 1
@@ -223,7 +224,7 @@ def EKF(robot_odometry, initial_x, initial_y, initial_theta, robot_measurements,
         sigma_bars[i] = sigma_bar
         est = [robot_odometry[i][0], reading]
         time_stamp_sensor.append(est)
-    return positions, sigmas, time_stamp_sensor
+    return positions, sigma_bars, time_stamp_sensor
 # sensor_reading(mu_bar, sigma_bar, z, Q, landmarks):
 robot1_odometry = robot1_odometry[100:-1]
 # find the starting GT position
@@ -274,15 +275,25 @@ plt.ylabel('y(m)')
 plt.gcf().set_size_inches(12, 12)
 
 # plot the MSE of the dead reckoning trajectory FIXME!
+sse = []
+prev_gt_idx = 0
+for i in tqdm(range(index)):
+    time_step = ekf_time_stamp_sensors[i][0]
+    closest_gt_idx = prev_gt_idx
+    while robot_1_gt[closest_gt_idx,0] < time_step:
+        closest_gt_idx += 1
+    sse.append((ekf_positions[i,0]- robot_1_gt[closest_gt_idx,1])**2 + (ekf_positions[i,1] - robot_1_gt[closest_gt_idx,2])**2)
+    prev_gt_idx = closest_gt_idx
+
 fig, ax2 = plt.subplots()
-seg = index
-seg_to_time = int(robot1_odometry[seg,0] - robot1_odometry[0,0])
+
+seg_to_time = int(robot1_odometry[-1][0] - robot1_odometry[0][0])
 # get the MSE of the x and y positions
-sse = (ekf_positions[:seg,0]- robot_1_gt[gt_start:gt_start+seg,1])**2 + (ekf_positions[:seg,1] - robot_1_gt[gt_start:gt_start+seg,2])**2
+# sse = (ekf_positions[:seg,0]- robot_1_gt[gt_start:gt_start+seg,1])**2 + (ekf_positions[:seg,1] - robot_1_gt[gt_start:gt_start+seg,2])**2
 ax2.plot(sse, 'r.', markersize=1)
 # ax3.plot(mse[0], mse[1], 'r.', markersize=20)
 ax2.grid()
-ax2.set_title('Sum Squared Error of Dead Reckoning Trajectory after {} seconds'.format(seg_to_time))
+ax2.set_title('Sum Squared Error of EKF after {} minutes'.format(int(seg_to_time/60)))
 ax2.set_xlabel('Time Step')
 ax2.set_ylabel('Sum Squared Error(m)')
 plt.show()
