@@ -272,6 +272,19 @@ plt.xlabel('x(m)')
 plt.ylabel('y(m)')
 # make the plot big!
 plt.gcf().set_size_inches(12, 12)
+
+# plot the MSE of the dead reckoning trajectory FIXME!
+fig, ax2 = plt.subplots()
+seg = index
+seg_to_time = int(robot1_odometry[seg,0] - robot1_odometry[0,0])
+# get the MSE of the x and y positions
+sse = (ekf_positions[:seg,0]- robot_1_gt[gt_start:gt_start+seg,1])**2 + (ekf_positions[:seg,1] - robot_1_gt[gt_start:gt_start+seg,2])**2
+ax2.plot(sse, 'r.', markersize=1)
+# ax3.plot(mse[0], mse[1], 'r.', markersize=20)
+ax2.grid()
+ax2.set_title('Sum Squared Error of Dead Reckoning Trajectory after {} seconds'.format(seg_to_time))
+ax2.set_xlabel('Time Step')
+ax2.set_ylabel('Sum Squared Error(m)')
 plt.show()
 
 # Dynamic Plotting
