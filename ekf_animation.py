@@ -34,7 +34,8 @@ robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 14]
 robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 41]
 robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 32]
 robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 23]
-# robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 18] # Marker 18 is dumb!
+robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 61] # 17 is dumb
+robot1_measurements = robot1_measurements[robot1_measurements[:,1] != 18] # 11 is also dumb
 
 # remove all rows with duplicate timesteps
 # robot1_measurements = robot1_measurements[np.unique(robot1_measurements[:,0], return_index=True)[1]]
@@ -171,7 +172,7 @@ def EKF(robot_odometry, initial_x, initial_y, initial_theta, robot_measurements)
 
     # Time to actually iterate through the data
     for i in range(1, robot_odometry.shape[0]):
-        print(i)
+        # print(i)
         if i == 301:
             pass
         ax.scatter(robot_1_gt[:5000,1], robot_1_gt[:5000,2], color='y', s=1)
